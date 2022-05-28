@@ -1,0 +1,50 @@
+{
+  "where": {
+    "field": "testfield2",
+    "operator": "=",
+    "value": "testvalue",
+
+    "and": {
+      "field": "testfield5",
+      "operator": ">",
+      "value": 10,
+
+      "or": {
+        "field": "testfield5",
+        "operator": "<",
+        "value": 10,
+
+        "or": {
+          "field": "testfield5",
+          "operator": "><",
+          "value": "10-20",
+
+          "and": {
+            "field": "testfield4",
+            "operator": "match",
+            "value": "testmatch"
+          }
+        }
+      }
+    }
+  },
+
+  "implement": [
+    {
+      "from": {
+        "table": "othertable",
+        "field": "otherfield"
+      },
+      "field": "testfield",
+      "as": "testalias"
+    }
+  ],
+
+  "sort": {
+    "field": "testfield5",
+    "direction": "DESC"
+  },
+
+  "skip": 0,
+  "limit": 50
+}
