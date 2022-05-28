@@ -36,7 +36,7 @@ func parseFields(m map[string]interface{}) (map[string]Field, error) {
 					t = &ts
 					break
 				case "number":
-					tn := reflect.Int64
+					tn := reflect.Float64
 					t = &tn
 					break
 				case "boolean":

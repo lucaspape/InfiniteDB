@@ -131,7 +131,7 @@ func (objects Objects) between(fieldName string, smaller string, larger string, 
 	return objects
 }
 
-func (objects Objects) sort(table Table, fieldName string, direction int, levenshtein *string) (Objects, error) {
+func (objects Objects) sort(table Table, fieldName string, direction string, levenshtein *string) (Objects, error) {
 	t := table.Fields[fieldName].Type
 
 	if levenshtein != nil && t == reflect.String {
@@ -142,8 +142,8 @@ func (objects Objects) sort(table Table, fieldName string, direction int, levens
 		switch t {
 		case reflect.String:
 			return objects.sortString(fieldName, direction), nil
-		case reflect.Int64:
-			return objects.sortInt(fieldName, direction), nil
+		case reflect.Float64:
+			return objects.sortFloat(fieldName, direction), nil
 		case reflect.Bool:
 			return objects.sortBoolean(fieldName, direction), nil
 		default:
@@ -154,16 +154,16 @@ func (objects Objects) sort(table Table, fieldName string, direction int, levens
 
 //TODO CHECK IF THE SORTING ORIENTATIONS ARE CORRECT
 
-func (objects Objects) sortString(fieldName string, direction int) Objects {
+func (objects Objects) sortString(fieldName string, direction string) Objects {
 	switch direction {
 	case asc:
 		sort.Slice(objects.objects, func(i, j int) bool {
-			return objects.objects[i].M[fieldName].(string) > objects.objects[j].M[fieldName].(string)
+			return objects.objects[i].M[fieldName].(string) < objects.objects[j].M[fieldName].(string)
 		})
 		break
 	case desc:
 		sort.Slice(objects.objects, func(i, j int) bool {
-			return objects.objects[i].M[fieldName].(string) < objects.objects[j].M[fieldName].(string)
+			return objects.objects[i].M[fieldName].(string) > objects.objects[j].M[fieldName].(string)
 		})
 		break
 	}
@@ -171,7 +171,7 @@ func (objects Objects) sortString(fieldName string, direction int) Objects {
 	return objects
 }
 
-func (objects Objects) sortLevenshtein(fieldName string, direction int, l string) Objects {
+func (objects Objects) sortLevenshtein(fieldName string, direction string, l string) Objects {
 	internalFieldName := "INTERNAL_DATABASE_DISTANCE"
 
 	str1 := []rune(l)
@@ -182,19 +182,19 @@ func (objects Objects) sortLevenshtein(fieldName string, direction int, l string
 		object.M[internalFieldName] = levenshtein(str1, str2)
 	}
 
-	return objects.sortInt(internalFieldName, direction)
+	return objects.sortFloat(internalFieldName, direction)
 }
 
-func (objects Objects) sortInt(fieldName string, direction int) Objects {
+func (objects Objects) sortFloat(fieldName string, direction string) Objects {
 	switch direction {
 	case asc:
 		sort.Slice(objects.objects, func(i, j int) bool {
-			return objects.objects[i].M[fieldName].(int64) > objects.objects[j].M[fieldName].(int64)
+			return objects.objects[i].M[fieldName].(int) < objects.objects[j].M[fieldName].(int)
 		})
 		break
 	case desc:
 		sort.Slice(objects.objects, func(i, j int) bool {
-			return objects.objects[i].M[fieldName].(int64) < objects.objects[j].M[fieldName].(int64)
+			return objects.objects[i].M[fieldName].(int) > objects.objects[j].M[fieldName].(int)
 		})
 		break
 	}
@@ -202,7 +202,7 @@ func (objects Objects) sortInt(fieldName string, direction int) Objects {
 	return objects
 }
 
-func (objects Objects) sortBoolean(fieldName string, direction int) Objects {
+func (objects Objects) sortBoolean(fieldName string, direction string) Objects {
 	switch direction {
 	case asc:
 		sort.Slice(objects.objects, func(i, j int) bool {
@@ -336,7 +336,7 @@ func (table Table) not(fieldName string, key string, previousObjects *Objects) (
 }
 
 func (table Table) larger(fieldName string, key string, previousObjects *Objects) (Objects, error) {
-	parseNumber := table.Fields[fieldName].Type == reflect.Int64
+	parseNumber := table.Fields[fieldName].Type == reflect.Float64
 
 	if previousObjects == nil {
 		return table.indexElementsToObjects(table.index.larger(fieldName, key, parseNumber))
@@ -346,7 +346,7 @@ func (table Table) larger(fieldName string, key string, previousObjects *Objects
 }
 
 func (table Table) smaller(fieldName string, key string, previousObjects *Objects) (Objects, error) {
-	parseNumber := table.Fields[fieldName].Type == reflect.Int64
+	parseNumber := table.Fields[fieldName].Type == reflect.Float64
 
 	if previousObjects == nil {
 		return table.indexElementsToObjects(table.index.smaller(fieldName, key, parseNumber))
@@ -356,7 +356,7 @@ func (table Table) smaller(fieldName string, key string, previousObjects *Object
 }
 
 func (table Table) between(fieldName string, smaller string, larger string, previousObjects *Objects) (Objects, error) {
-	parseNumber := table.Fields[fieldName].Type == reflect.Int64
+	parseNumber := table.Fields[fieldName].Type == reflect.Float64
 
 	if previousObjects == nil {
 		return table.indexElementsToObjects(table.index.between(fieldName, smaller, larger, parseNumber))

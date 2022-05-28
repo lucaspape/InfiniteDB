@@ -133,6 +133,7 @@ func getFromDatabaseTableHandler(c *gin.Context) {
 	}
 }
 
+//TODO check if table exists
 func insertToDatabaseTableHandler(c *gin.Context) {
 	body := getBody(c)
 

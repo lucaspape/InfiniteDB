@@ -27,10 +27,10 @@ type Request struct {
 }
 
 type Where struct {
-	t *int
+	t *string
 
 	field    string
-	operator int
+	operator string
 	value    string
 
 	where *Where
@@ -49,26 +49,26 @@ type ImplementFrom struct {
 
 type Sort struct {
 	field       string
-	direction   int
+	direction   string
 	levenshtein *string
 }
 
 const (
-	equals = iota
-	not
-	larger
-	smaller
-	between
+	equals  string = "="
+	not     string = "!="
+	larger  string = ">"
+	smaller string = "<"
+	between string = "><"
 )
 
 const (
-	and = iota
-	or
+	and string = "and"
+	or  string = "or"
 )
 
 const (
-	asc = iota
-	desc
+	asc  string = "asc"
+	desc string = "desc"
 )
 
 func NewDatabase(name string, path string) (*Database, error) {
@@ -161,8 +161,8 @@ func parseTableConfig(m map[string]interface{}) (map[string]Field, error) {
 		case 1:
 			kind = reflect.Bool
 			break
-		case 6:
-			kind = reflect.Int64
+		case 14:
+			kind = reflect.Float64
 			break
 		case 24:
 			kind = reflect.String
@@ -319,14 +319,14 @@ func parseRequest(m map[string]interface{}) (*Request, error) {
 	return request, nil
 }
 
-func parseWhere(t *int, m map[string]interface{}) (*Where, error) {
+func parseWhere(t *string, m map[string]interface{}) (*Where, error) {
 	where := new(Where)
 
 	if t != nil {
 		where.t = t
 	}
 
-	var nextType *int
+	var nextType *string
 	var nextWhere interface{}
 
 	for key, value := range m {
@@ -335,22 +335,23 @@ func parseWhere(t *int, m map[string]interface{}) (*Where, error) {
 			where.field = value.(string)
 			break
 		case "operator":
-			operator := 0
+			var operator string
 
+			//TODO yeah this is kinda stupid
 			switch value.(string) {
-			case "=":
+			case equals:
 				operator = equals
 				break
-			case "!=":
+			case not:
 				operator = not
 				break
-			case ">":
+			case larger:
 				operator = larger
 				break
-			case "<":
+			case smaller:
 				operator = smaller
 				break
-			case "><":
+			case between:
 				operator = between
 				break
 			default:
@@ -374,12 +375,12 @@ func parseWhere(t *int, m map[string]interface{}) (*Where, error) {
 				return nil, errors.New("type not supported")
 			}
 			break
-		case "and":
+		case and:
 			andType := and
 			nextType = &andType
 			nextWhere = value
 			break
-		case "or":
+		case or:
 			orType := or
 			nextType = &orType
 			nextWhere = value
@@ -458,19 +459,18 @@ func parseSort(m map[string]interface{}) (*Sort, error) {
 			sort.field = value.(string)
 			break
 		case "direction":
-			direction := 0
-
+			//TODO also kinda stupid
 			switch value.(string) {
-			case "asc":
-				direction = asc
+			case asc:
+				sort.direction = asc
 				break
-			case "desc":
-				direction = desc
+			case desc:
+				sort.direction = desc
 				break
 			default:
 				return nil, errors.New("unknown sort direction")
 			}
-			sort.direction = direction
+
 			break
 		case "levenshtein":
 			l := value.(string)
