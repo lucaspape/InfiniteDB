@@ -6,14 +6,16 @@ import (
 )
 
 type Field struct {
-	Name string
-	Type reflect.Kind
+	Name    string
+	Indexed bool
+	Type    reflect.Kind
 }
 
-func NewField(name string, t reflect.Kind) *Field {
+func NewField(name string, indexed bool, t reflect.Kind) *Field {
 	field := new(Field)
 
 	field.Name = name
+	field.Indexed = indexed
 	field.Type = t
 
 	return field
@@ -24,6 +26,7 @@ func parseFields(m map[string]interface{}) (map[string]Field, error) {
 
 	for fieldName, fieldValues := range m {
 		var t *reflect.Kind
+		var indexed bool
 
 		fieldMap := fieldValues.(map[string]interface{})
 
@@ -46,6 +49,9 @@ func parseFields(m map[string]interface{}) (map[string]Field, error) {
 				}
 
 				break
+			case "indexed":
+				indexed = value.(bool)
+				break
 			}
 		}
 
@@ -53,7 +59,7 @@ func parseFields(m map[string]interface{}) (map[string]Field, error) {
 			return resultMap, errors.New("field does not have a type")
 		}
 
-		resultMap[fieldName] = *NewField(fieldName, *t)
+		resultMap[fieldName] = *NewField(fieldName, indexed, *t)
 	}
 
 	return resultMap, nil

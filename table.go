@@ -152,8 +152,6 @@ func (objects Objects) sort(table Table, fieldName string, direction string, lev
 	}
 }
 
-//TODO CHECK IF THE SORTING ORIENTATIONS ARE CORRECT
-
 func (objects Objects) sortString(fieldName string, direction string) Objects {
 	switch direction {
 	case asc:
@@ -314,8 +312,10 @@ func (table Table) insert(object Object) error {
 }
 
 func (table Table) indexObject(object Object) {
-	for fieldName := range table.Fields {
-		table.index.add(fieldName, fmt.Sprintf("%v", object.M[fieldName]), *NewIndexElement(object.Id))
+	for fieldName, field := range table.Fields {
+		if field.Indexed {
+			table.index.add(fieldName, fmt.Sprintf("%v", object.M[fieldName]), *NewIndexElement(object.Id))
+		}
 	}
 }
 
