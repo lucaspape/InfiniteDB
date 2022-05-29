@@ -257,7 +257,7 @@ func (api Api) UpdateInDatabaseTable(name interface{}, tableName interface{}, ob
 	}
 
 	if object == nil {
-		return m, errors.New("no request specified")
+		return m, errors.New("no object specified")
 	}
 
 	database := api.databases[name.(string)]
@@ -265,6 +265,10 @@ func (api Api) UpdateInDatabaseTable(name interface{}, tableName interface{}, ob
 	table := database.Tables[tableName.(string)]
 
 	foundObject, err := table.findExisting(object.(map[string]interface{}))
+
+	for key, value := range object.(map[string]interface{}) {
+		foundObject.M[key] = value
+	}
 
 	if err != nil {
 		return m, err
