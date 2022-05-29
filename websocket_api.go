@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"net/http"
+	"time"
 )
 
 var wsUpgrader = websocket.Upgrader{
@@ -31,11 +32,11 @@ func (websocketApi WebsocketApi) run(r *gin.Engine) {
 
 func (websocketApi WebsocketApi) registerHandler(r *gin.Engine) {
 	r.GET("/ws", func(c *gin.Context) {
-		websocketApi.handler(c.Writer, c.Request)
+		websocketApi.handler(c, c.Writer, c.Request)
 	})
 }
 
-func (websocketApi WebsocketApi) handler(w http.ResponseWriter, r *http.Request) {
+func (websocketApi WebsocketApi) handler(c *gin.Context, w http.ResponseWriter, r *http.Request) {
 	conn, err := wsUpgrader.Upgrade(w, r, nil)
 
 	if err != nil {
@@ -64,7 +65,7 @@ func (websocketApi WebsocketApi) handler(w http.ResponseWriter, r *http.Request)
 			requestId := (*body)["requestId"]
 
 			if requestId != nil {
-				if websocketApi.methodHandler(conn, requestId.(string), *body) {
+				if websocketApi.methodHandler(conn, c.ClientIP(), requestId.(string), *body) {
 					return
 				}
 			} else {
@@ -106,37 +107,42 @@ func (websocketApi WebsocketApi) send(conn *websocket.Conn, requestId string, m 
 	return false
 }
 
-func (websocketApi WebsocketApi) methodHandler(conn *websocket.Conn, requestId string, r map[string]interface{}) bool {
+func (websocketApi WebsocketApi) methodHandler(conn *websocket.Conn, clientIp string, requestId string, r map[string]interface{}) bool {
 	method := r["method"]
 
 	closed := false
+	status := 0
+	since := time.Now()
 
 	if method != nil {
 		switch method.(string) {
 		case "getDatabases":
-			closed = websocketApi.getDatabasesHandler(conn, requestId)
+			closed, status = websocketApi.getDatabasesHandler(conn, requestId)
 			break
 		case "createDatabase":
-			closed = websocketApi.createDatabaseHandler(conn, requestId, r)
+			closed, status = websocketApi.createDatabaseHandler(conn, requestId, r)
 			break
 		case "getDatabase":
-			closed = websocketApi.getDatabaseHandler(conn, requestId, r)
+			closed, status = websocketApi.getDatabaseHandler(conn, requestId, r)
 			break
 		case "getDatabaseTables":
-			closed = websocketApi.getDatabaseTablesHandler(conn, requestId, r)
+			closed, status = websocketApi.getDatabaseTablesHandler(conn, requestId, r)
 			break
 		case "createTableInDatabase":
-			closed = websocketApi.createTableInDatabaseHandler(conn, requestId, r)
+			closed, status = websocketApi.createTableInDatabaseHandler(conn, requestId, r)
 			break
 		case "getFromDatabaseTable":
-			closed = websocketApi.getFromDatabaseTableHandler(conn, requestId, r)
+			closed, status = websocketApi.getFromDatabaseTableHandler(conn, requestId, r)
 			break
 		case "insertToDatabaseTable":
-			closed = websocketApi.insertToDatabaseTableHandler(conn, requestId, r)
+			closed, status = websocketApi.insertToDatabaseTableHandler(conn, requestId, r)
 			break
 		default:
 			closed = websocketApi.send(conn, requestId, gin.H{"status": http.StatusInternalServerError, "message": "method not found"})
+			status = http.StatusInternalServerError
 		}
+
+		websocketApi.logHandler(method.(string), status, since, clientIp, requestId)
 	} else {
 		closed = websocketApi.send(conn, requestId, gin.H{"status": http.StatusInternalServerError, "message": "no method specified"})
 	}
@@ -144,13 +150,13 @@ func (websocketApi WebsocketApi) methodHandler(conn *websocket.Conn, requestId s
 	return closed
 }
 
-func (websocketApi WebsocketApi) getDatabasesHandler(conn *websocket.Conn, requestId string) bool {
+func (websocketApi WebsocketApi) getDatabasesHandler(conn *websocket.Conn, requestId string) (bool, int) {
 	results, err := websocketApi.api.GetDatabases()
 
 	return websocketApi.sendResults(conn, requestId, results, err)
 }
 
-func (websocketApi WebsocketApi) createDatabaseHandler(conn *websocket.Conn, requestId string, r map[string]interface{}) bool {
+func (websocketApi WebsocketApi) createDatabaseHandler(conn *websocket.Conn, requestId string, r map[string]interface{}) (bool, int) {
 	name := r["name"]
 
 	results, err := websocketApi.api.CreateDatabase(name)
@@ -158,7 +164,7 @@ func (websocketApi WebsocketApi) createDatabaseHandler(conn *websocket.Conn, req
 	return websocketApi.sendResults(conn, requestId, results, err)
 }
 
-func (websocketApi WebsocketApi) getDatabaseHandler(conn *websocket.Conn, requestId string, r map[string]interface{}) bool {
+func (websocketApi WebsocketApi) getDatabaseHandler(conn *websocket.Conn, requestId string, r map[string]interface{}) (bool, int) {
 	name := r["name"]
 
 	results, err := websocketApi.api.GetDatabase(name)
@@ -166,7 +172,7 @@ func (websocketApi WebsocketApi) getDatabaseHandler(conn *websocket.Conn, reques
 	return websocketApi.sendResults(conn, requestId, results, err)
 }
 
-func (websocketApi WebsocketApi) getDatabaseTablesHandler(conn *websocket.Conn, requestId string, r map[string]interface{}) bool {
+func (websocketApi WebsocketApi) getDatabaseTablesHandler(conn *websocket.Conn, requestId string, r map[string]interface{}) (bool, int) {
 	name := r["name"]
 
 	results, err := websocketApi.api.GetDatabaseTables(name)
@@ -174,7 +180,7 @@ func (websocketApi WebsocketApi) getDatabaseTablesHandler(conn *websocket.Conn, 
 	return websocketApi.sendResults(conn, requestId, results, err)
 }
 
-func (websocketApi WebsocketApi) createTableInDatabaseHandler(conn *websocket.Conn, requestId string, r map[string]interface{}) bool {
+func (websocketApi WebsocketApi) createTableInDatabaseHandler(conn *websocket.Conn, requestId string, r map[string]interface{}) (bool, int) {
 	name := r["name"]
 	tableName := r["tableName"]
 	fields := r["fields"]
@@ -184,7 +190,7 @@ func (websocketApi WebsocketApi) createTableInDatabaseHandler(conn *websocket.Co
 	return websocketApi.sendResults(conn, requestId, results, err)
 }
 
-func (websocketApi WebsocketApi) getFromDatabaseTableHandler(conn *websocket.Conn, requestId string, r map[string]interface{}) bool {
+func (websocketApi WebsocketApi) getFromDatabaseTableHandler(conn *websocket.Conn, requestId string, r map[string]interface{}) (bool, int) {
 	name := r["name"]
 	tableName := r["tableName"]
 	request := r["request"]
@@ -194,7 +200,7 @@ func (websocketApi WebsocketApi) getFromDatabaseTableHandler(conn *websocket.Con
 	return websocketApi.sendResults(conn, requestId, results, err)
 }
 
-func (websocketApi WebsocketApi) insertToDatabaseTableHandler(conn *websocket.Conn, requestId string, r map[string]interface{}) bool {
+func (websocketApi WebsocketApi) insertToDatabaseTableHandler(conn *websocket.Conn, requestId string, r map[string]interface{}) (bool, int) {
 	name := r["name"]
 	tableName := r["tableName"]
 	object := r["object"]
@@ -204,10 +210,43 @@ func (websocketApi WebsocketApi) insertToDatabaseTableHandler(conn *websocket.Co
 	return websocketApi.sendResults(conn, requestId, results, err)
 }
 
-func (websocketApi WebsocketApi) sendResults(conn *websocket.Conn, requestId string, results map[string]interface{}, err error) bool {
+func (websocketApi WebsocketApi) sendResults(conn *websocket.Conn, requestId string, results map[string]interface{}, err error) (bool, int) {
 	if err == nil {
-		return websocketApi.send(conn, requestId, results)
+		results["status"] = http.StatusOK
+
+		return websocketApi.send(conn, requestId, results), http.StatusOK
 	} else {
-		return websocketApi.send(conn, requestId, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprint(err)})
+		return websocketApi.send(conn, requestId, gin.H{"status": http.StatusInternalServerError, "message": fmt.Sprint(err)}), http.StatusInternalServerError
 	}
+}
+
+func (websocketApi WebsocketApi) logHandler(method string, statusCode int, since time.Time, clientIp string, requestId string) {
+	param := new(gin.LogFormatterParams)
+	param.Path = method
+	param.Method = http.MethodGet
+	param.ClientIP = clientIp
+	param.Latency = time.Since(since)
+	param.StatusCode = statusCode
+	param.TimeStamp = time.Now()
+
+	statusColor := param.StatusCodeColor()
+	methodColor := param.MethodColor()
+	resetColor := param.ResetColor()
+
+	param.Method = "Websocket"
+
+	if param.Latency > time.Minute {
+		param.Latency = param.Latency.Truncate(time.Second)
+	}
+
+	fmt.Print(fmt.Sprintf("[GIN-WS] %v |%s %3d %s| %13v | %15s | %s |%s %-7s %s %#v\n%s",
+		param.TimeStamp.Format("2006/01/02 - 15:04:05"),
+		statusColor, param.StatusCode, resetColor,
+		param.Latency,
+		param.ClientIP,
+		requestId,
+		methodColor, param.Method, resetColor,
+		param.Path,
+		param.ErrorMessage,
+	))
 }
