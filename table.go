@@ -306,14 +306,16 @@ func (table Table) initializeIndex() error {
 	return nil
 }
 
-func (table Table) insert(object Object) error {
+func (table Table) insert(object Object, overwrite bool) error {
 	err := object.checkAllFieldsExist(table)
 
 	if err != nil {
 		return err
 	}
 
-	err = object.checkUnique(table)
+	if !overwrite {
+		err = object.checkUnique(table)
+	}
 
 	if err != nil {
 		return err
@@ -346,6 +348,26 @@ func (table Table) remove(object Object) error {
 	}
 
 	return nil
+}
+
+func (table Table) findExisting(object map[string]interface{}) (*Object, error) {
+	for fieldName, field := range table.Fields {
+		if field.Indexed && field.Unique {
+			indexElements := table.index.equal(fieldName, fmt.Sprintf("%v", object[fieldName]))
+
+			if len(indexElements) > 0 {
+				objects, err := table.indexElementsToObjects(indexElements)
+
+				if err != nil {
+					return nil, err
+				}
+
+				return &objects.objects[0], nil
+			}
+		}
+	}
+
+	return nil, errors.New("could not find object with at least one indexed and unique field")
 }
 
 func (table Table) indexObject(object Object) {

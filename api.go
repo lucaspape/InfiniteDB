@@ -200,7 +200,7 @@ func (api Api) InsertToDatabaseTable(name interface{}, tableName interface{}, ob
 
 	objectId := uuid.New().String()
 
-	err := table.insert(*NewObject(objectId, object.(map[string]interface{})))
+	err := table.insert(*NewObject(objectId, object.(map[string]interface{})), false)
 
 	if err != nil {
 		return m, err
@@ -241,6 +241,44 @@ func (api Api) RemoveFromDatabaseTable(name interface{}, tableName interface{}, 
 	m["tableName"] = tableName.(string)
 	m["request"] = request.(map[string]interface{})
 	m["removed"] = count
+
+	return m, nil
+}
+
+func (api Api) UpdateInDatabaseTable(name interface{}, tableName interface{}, object interface{}) (map[string]interface{}, error) {
+	m := make(map[string]interface{})
+
+	if name == nil {
+		return m, errors.New("no name specified")
+	}
+
+	if tableName == nil {
+		return m, errors.New("no tableName specified")
+	}
+
+	if object == nil {
+		return m, errors.New("no request specified")
+	}
+
+	database := api.databases[name.(string)]
+
+	table := database.Tables[tableName.(string)]
+
+	foundObject, err := table.findExisting(object.(map[string]interface{}))
+
+	if err != nil {
+		return m, err
+	}
+
+	err = table.insert(*NewObject(foundObject.Id, object.(map[string]interface{})), true)
+
+	if err != nil {
+		return m, err
+	}
+
+	m["name"] = name.(string)
+	m["tableName"] = tableName.(string)
+	m["object"] = object.(map[string]interface{})
 
 	return m, nil
 }

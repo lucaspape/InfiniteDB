@@ -142,6 +142,9 @@ func (websocketApi WebsocketApi) methodHandler(conn *websocket.Conn, clientIp st
 		case "removeFromDatabaseTable":
 			closed, status = websocketApi.removeFromDatabaseTableHandler(conn, requestId, r)
 			break
+		case "updateInDatabaseTable":
+			closed, status = websocketApi.updateInDatabaseTableHandler(conn, requestId, r)
+			break
 		default:
 			closed = websocketApi.send(conn, requestId, gin.H{"status": http.StatusInternalServerError, "message": "method not found"})
 			status = http.StatusInternalServerError
@@ -221,6 +224,16 @@ func (websocketApi WebsocketApi) removeFromDatabaseTableHandler(conn *websocket.
 	request := r["request"]
 
 	results, err := websocketApi.api.RemoveFromDatabaseTable(name, tableName, request)
+
+	return websocketApi.sendResults(conn, requestId, results, err)
+}
+
+func (websocketApi WebsocketApi) updateInDatabaseTableHandler(conn *websocket.Conn, requestId string, r map[string]interface{}) (bool, int) {
+	name := r["name"]
+	tableName := r["tableName"]
+	object := r["object"]
+
+	results, err := websocketApi.api.UpdateInDatabaseTable(name, tableName, object)
 
 	return websocketApi.sendResults(conn, requestId, results, err)
 }
