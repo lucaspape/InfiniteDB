@@ -1,15 +1,21 @@
 package main
 
-import "github.com/google/uuid"
+import (
+	"errors"
+	"fmt"
+	"github.com/google/uuid"
+)
 
 type Api struct {
-	databases map[string]Database
+	databasePath string
+	databases    map[string]Database
 }
 
-func NewApi(databases map[string]Database) *Api {
+func NewApi(databasePath string) *Api {
 	api := new(Api)
 
-	api.databases = databases
+	api.databasePath = databasePath
+	api.databases = make(map[string]Database)
 
 	return api
 }
@@ -28,76 +34,132 @@ func (api Api) GetDatabases() (map[string]interface{}, error) {
 	return m, nil
 }
 
-func (api Api) CreateDatabase(name string) (map[string]interface{}, error) {
+func (api Api) CreateDatabase(name interface{}) (map[string]interface{}, error) {
 	m := make(map[string]interface{})
 
-	err := createDatabase(name)
+	if name == nil {
+		return m, errors.New("no name specified")
+	}
+
+	err := createDatabase(name.(string))
+
+	if err != nil {
+		return m, err
+	}
+
+	err = api.loadDatabase(name.(string))
 
 	if err != nil {
 		return m, err
 	}
 
 	m["message"] = "Created database"
-	m["name"] = name
+	m["name"] = name.(string)
 
 	return m, nil
 }
 
-func (api Api) GetDatabase(name string) (map[string]interface{}, error) {
+func (api Api) loadDatabase(name string) error {
+	database, err := NewDatabase(name, api.databasePath)
+
+	if err != nil {
+		return err
+	}
+
+	api.databases[name] = *database
+
+	fmt.Println("Loaded database " + name)
+
+	return nil
+}
+
+func (api Api) GetDatabase(name interface{}) (map[string]interface{}, error) {
 	m := make(map[string]interface{})
 
-	m["name"] = name
+	if name == nil {
+		return m, errors.New("no name specified")
+	}
+
+	m["name"] = name.(string)
 
 	return m, nil
 }
 
-func (api Api) GetDatabaseTables(name string) (map[string]interface{}, error) {
+func (api Api) GetDatabaseTables(name interface{}) (map[string]interface{}, error) {
 	m := make(map[string]interface{})
+
+	if name == nil {
+		return m, errors.New("no name specified")
+	}
 
 	var tableNames []string
 
-	database := api.databases[name]
+	database := api.databases[name.(string)]
 
 	for tableName := range database.Tables {
 		tableNames = append(tableNames, tableName)
 	}
 
-	m["name"] = name
+	m["name"] = name.(string)
 	m["tables"] = tableNames
 
 	return m, nil
 }
 
-func (api Api) CreateTableInDatabase(name string, tableName string, fields map[string]interface{}) (map[string]interface{}, error) {
+func (api Api) CreateTableInDatabase(name interface{}, tableName interface{}, fields interface{}) (map[string]interface{}, error) {
 	m := make(map[string]interface{})
 
-	parsedFields, err := parseFields(fields)
+	if name == nil {
+		return m, errors.New("no name specified")
+	}
+
+	if tableName == nil {
+		return m, errors.New("no tableName specified")
+	}
+
+	if fields == nil {
+		return m, errors.New("no fields specified")
+	}
+
+	parsedFields, err := parseFields(fields.(map[string]interface{}))
 
 	if err != nil {
 		return m, err
 	}
 
-	database := api.databases[name]
+	database := api.databases[name.(string)]
 
-	err = database.createTable(tableName, parsedFields)
+	err = database.createTable(tableName.(string), parsedFields)
 
 	if err != nil {
 		return m, err
 	}
 
-	m["name"] = name
-	m["tableName"] = tableName
-	m["fields"] = fields
+	m["name"] = name.(string)
+	m["tableName"] = tableName.(string)
+	m["fields"] = fields.(map[string]interface{})
 
 	return m, nil
 }
 
-func (api Api) GetFromDatabaseTable(name string, tableName string, request map[string]interface{}) (map[string]interface{}, error) {
+func (api Api) GetFromDatabaseTable(name interface{}, tableName interface{}, request interface{}) (map[string]interface{}, error) {
 	m := make(map[string]interface{})
 
-	database := api.databases[name]
+	if name == nil {
+		return m, errors.New("no name specified")
+	}
 
-	objects, err := database.get(tableName, request)
+	if tableName == nil {
+		return m, errors.New("no tableName specified")
+	}
+
+	if request == nil {
+		return m, errors.New("no request specified")
+	}
+
+	database := api.databases[name.(string)]
+
+	objects, err := database.get(tableName.(string), request.(map[string]interface{}))
 
 	if err != nil {
 		return m, err
@@ -109,32 +171,44 @@ func (api Api) GetFromDatabaseTable(name string, tableName string, request map[s
 		results = append(results, object.M)
 	}
 
-	m["name"] = name
-	m["tableName"] = tableName
-	m["request"] = request
+	m["name"] = name.(string)
+	m["tableName"] = tableName.(string)
+	m["request"] = request.(map[string]interface{})
 	m["results"] = results
 
 	return m, nil
 }
 
-func (api Api) InsertToDatabaseTable(name string, tableName string, object map[string]interface{}) (map[string]interface{}, error) {
+func (api Api) InsertToDatabaseTable(name interface{}, tableName interface{}, object interface{}) (map[string]interface{}, error) {
 	m := make(map[string]interface{})
 
-	database := api.databases[name]
+	if name == nil {
+		return m, errors.New("no name specified")
+	}
 
-	table := database.Tables[tableName]
+	if tableName == nil {
+		return m, errors.New("no tableName specified")
+	}
+
+	if object == nil {
+		return m, errors.New("no object specified")
+	}
+
+	database := api.databases[name.(string)]
+
+	table := database.Tables[tableName.(string)]
 
 	objectId := uuid.New().String()
 
-	err := table.insert(*NewObject(objectId, object))
+	err := table.insert(*NewObject(objectId, object.(map[string]interface{})))
 
 	if err != nil {
 		return m, err
 	}
 
-	m["name"] = name
-	m["tableName"] = tableName
-	m["object"] = object
+	m["name"] = name.(string)
+	m["tableName"] = tableName.(string)
+	m["object"] = object.(map[string]interface{})
 	m["objectId"] = objectId
 
 	return m, nil

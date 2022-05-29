@@ -2,24 +2,30 @@ package main
 
 import (
 	"fmt"
+	"github.com/gin-gonic/gin"
 	"io/ioutil"
 )
 
 const databasePath = "./databases/"
 
-var api Api
-
 func main() {
-	databases, err := loadDatabases()
+	api := NewApi(databasePath)
+	err := loadDatabases(api)
 
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	api = *NewApi(databases)
+	r := gin.Default()
 
-	err = runHttpApi()
+	httpApi := NewHttpApi(api)
+	httpApi.run(r)
+
+	websocketApi := NewWebsocketApi(api)
+	websocketApi.run(r)
+
+	err = r.Run()
 
 	if err != nil {
 		fmt.Println(err)
@@ -27,26 +33,20 @@ func main() {
 	}
 }
 
-func loadDatabases() (map[string]Database, error) {
-	databases := make(map[string]Database)
-
+func loadDatabases(api *Api) error {
 	files, err := ioutil.ReadDir(databasePath)
 
 	if err != nil {
-		return databases, err
+		return err
 	}
 
 	for _, file := range files {
-		database, err := NewDatabase(file.Name(), databasePath)
-
+		err = api.loadDatabase(file.Name())
+		
 		if err != nil {
-			return databases, err
+			return err
 		}
-
-		databases[file.Name()] = *database
-
-		fmt.Println("Loaded database " + file.Name())
 	}
 
-	return databases, nil
+	return nil
 }
