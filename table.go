@@ -291,8 +291,17 @@ func (table Table) initializeIndex() error {
 }
 
 func (table Table) insert(object Object) error {
-	//TODO check if unique
-	//TODO check if all fields there
+	err := object.checkAllFieldsExist(table)
+
+	if err != nil {
+		return err
+	}
+
+	err = object.checkUnique(table)
+
+	if err != nil {
+		return err
+	}
 
 	bytes, err := json.Marshal(object.M)
 
@@ -317,6 +326,28 @@ func (table Table) indexObject(object Object) {
 			table.index.add(fieldName, fmt.Sprintf("%v", object.M[fieldName]), *NewIndexElement(object.Id))
 		}
 	}
+}
+
+func (object Object) checkUnique(table Table) error {
+	for fieldName, field := range table.Fields {
+		if field.Unique {
+			if len(table.index.equal(fieldName, fmt.Sprint(object.M[fieldName]))) > 0 {
+				return errors.New("found existing object for field " + fieldName)
+			}
+		}
+	}
+
+	return nil
+}
+
+func (object Object) checkAllFieldsExist(table Table) error {
+	for fieldName := range table.Fields {
+		if object.M[fieldName] == nil {
+			return errors.New("object does not have value for field " + fieldName)
+		}
+	}
+
+	return nil
 }
 
 func (table Table) equal(fieldName string, key string, previousObjects *Objects) (Objects, error) {

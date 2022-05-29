@@ -171,7 +171,7 @@ func parseTableConfig(m map[string]interface{}) (map[string]Field, error) {
 			return fieldMap, errors.New("type not found")
 		}
 
-		fieldMap[name] = *NewField(fmt.Sprintf("%v", field["Name"]), field["Indexed"].(bool), kind)
+		fieldMap[name] = *NewField(fmt.Sprintf("%v", field["Name"]), field["Indexed"].(bool), field["Unique"].(bool), kind)
 	}
 
 	return fieldMap, nil
