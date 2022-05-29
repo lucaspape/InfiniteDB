@@ -204,12 +204,12 @@ func (objects Objects) sortFloat(fieldName string, direction string) Objects {
 	switch direction {
 	case asc:
 		sort.Slice(objects.objects, func(i, j int) bool {
-			return objects.objects[i].M[fieldName].(int) < objects.objects[j].M[fieldName].(int)
+			return objects.objects[i].M[fieldName].(float64) < objects.objects[j].M[fieldName].(float64)
 		})
 		break
 	case desc:
 		sort.Slice(objects.objects, func(i, j int) bool {
-			return objects.objects[i].M[fieldName].(int) > objects.objects[j].M[fieldName].(int)
+			return objects.objects[i].M[fieldName].(float64) > objects.objects[j].M[fieldName].(float64)
 		})
 		break
 	}
