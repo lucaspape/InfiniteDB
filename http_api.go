@@ -4,19 +4,18 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"io/ioutil"
 	"net/http"
 )
 
 const apiPrefix = ""
 
-func runHttpApi() {
+func runHttpApi() error {
 	r := gin.Default()
 
 	registerHttpHandlers(r)
 
-	r.Run()
+	return r.Run()
 }
 
 func registerHttpHandlers(r *gin.Engine) {
@@ -34,13 +33,13 @@ func registerHttpHandlers(r *gin.Engine) {
 }
 
 func getDatabasesHandler(c *gin.Context) {
-	var databaseNames []string
+	results, err := api.GetDatabases()
 
-	for key := range databases {
-		databaseNames = append(databaseNames, key)
+	if err == nil {
+		c.JSON(http.StatusOK, results)
+	} else {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": fmt.Sprint(err)})
 	}
-
-	c.JSON(http.StatusOK, gin.H{"databases": databaseNames})
 }
 
 func createDatabaseHandler(c *gin.Context) {
@@ -49,10 +48,10 @@ func createDatabaseHandler(c *gin.Context) {
 	if body != nil {
 		name := (*body)["name"].(string)
 
-		err := createDatabase(name)
+		results, err := api.CreateDatabase(name)
 
 		if err == nil {
-			c.JSON(http.StatusOK, gin.H{"message": "Created database", "name": name})
+			c.JSON(http.StatusOK, results)
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": fmt.Sprint(err)})
 		}
@@ -62,21 +61,25 @@ func createDatabaseHandler(c *gin.Context) {
 func getDatabaseHandler(c *gin.Context) {
 	name := c.Param("name")
 
-	c.JSON(http.StatusOK, gin.H{"name": name})
+	results, err := api.GetDatabase(name)
+
+	if err == nil {
+		c.JSON(http.StatusOK, results)
+	} else {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": fmt.Sprint(err)})
+	}
 }
 
 func getDatabaseTablesHandler(c *gin.Context) {
 	name := c.Param("name")
 
-	var tableNames []string
+	results, err := api.GetDatabaseTables(name)
 
-	database := databases[name]
-
-	for tableName := range database.Tables {
-		tableNames = append(tableNames, tableName)
+	if err == nil {
+		c.JSON(http.StatusOK, results)
+	} else {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": fmt.Sprint(err)})
 	}
-
-	c.JSON(http.StatusOK, gin.H{"name": name, "tables": tableNames})
 }
 
 func createTableInDatabaseHandler(c *gin.Context) {
@@ -88,19 +91,10 @@ func createTableInDatabaseHandler(c *gin.Context) {
 		fields := (*body)["fields"].(map[string]interface{})
 		tableName := (*body)["name"].(string)
 
-		parsedFields, err := parseFields(fields)
-
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": fmt.Sprint(err)})
-			return
-		}
-
-		database := databases[name]
-
-		err = database.createTable(tableName, parsedFields)
+		results, err := api.CreateTableInDatabase(name, tableName, fields)
 
 		if err == nil {
-			c.JSON(http.StatusOK, gin.H{"message": "Created table", "name": name, "tableName": tableName})
+			c.JSON(http.StatusOK, results)
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": fmt.Sprint(err)})
 		}
@@ -114,22 +108,13 @@ func getFromDatabaseTableHandler(c *gin.Context) {
 		name := c.Param("name")
 		tableName := c.Param("tableName")
 
-		database := databases[name]
+		results, err := api.GetFromDatabaseTable(name, tableName, *body)
 
-		objects, err := database.get(tableName, *body)
-
-		if err != nil {
+		if err == nil {
+			c.JSON(http.StatusOK, results)
+		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": fmt.Sprint(err)})
-			return
 		}
-
-		var results []map[string]interface{}
-
-		for _, object := range objects.objects {
-			results = append(results, object.M)
-		}
-
-		c.JSON(http.StatusOK, results)
 	}
 }
 
@@ -141,16 +126,10 @@ func insertToDatabaseTableHandler(c *gin.Context) {
 		name := c.Param("name")
 		tableName := c.Param("tableName")
 
-		database := databases[name]
-
-		table := database.Tables[tableName]
-
-		objectId := uuid.New().String()
-
-		err := table.insert(*NewObject(objectId, *body))
+		results, err := api.InsertToDatabaseTable(name, tableName, *body)
 
 		if err == nil {
-			c.JSON(http.StatusOK, gin.H{"message": "Inserted object", "name": name, "tableName": tableName, "id": objectId})
+			c.JSON(http.StatusOK, results)
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": fmt.Sprint(err)})
 		}

@@ -7,33 +7,40 @@ import (
 
 const databasePath = "./databases/"
 
-var databases map[string]Database
+var api Api
 
 func main() {
-	err := loadDatabases()
+	databases, err := loadDatabases()
 
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	runHttpApi()
+	api = *NewApi(databases)
+
+	err = runHttpApi()
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 }
 
-func loadDatabases() error {
-	databases = make(map[string]Database)
+func loadDatabases() (map[string]Database, error) {
+	databases := make(map[string]Database)
 
 	files, err := ioutil.ReadDir(databasePath)
 
 	if err != nil {
-		return err
+		return databases, err
 	}
 
 	for _, file := range files {
 		database, err := NewDatabase(file.Name(), databasePath)
 
 		if err != nil {
-			return err
+			return databases, err
 		}
 
 		databases[file.Name()] = *database
@@ -41,5 +48,5 @@ func loadDatabases() error {
 		fmt.Println("Loaded database " + file.Name())
 	}
 
-	return nil
+	return databases, nil
 }
