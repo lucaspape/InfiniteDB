@@ -228,6 +228,30 @@ func (database Database) get(tableName string, request map[string]interface{}) (
 	}
 }
 
+func (database Database) remove(tableName string, request map[string]interface{}) (int64, error) {
+	objects, err := database.get(tableName, request)
+
+	if err != nil {
+		return 0, err
+	}
+
+	table := database.Tables[tableName]
+
+	var count int64 = 0
+
+	for _, object := range objects.objects {
+		err = table.remove(object)
+
+		if err != nil {
+			return count, err
+		}
+
+		count++
+	}
+
+	return count, nil
+}
+
 func runWhere(table Table, where Where, previousObjects *Objects) (Objects, error) {
 	var objects Objects
 	var err error

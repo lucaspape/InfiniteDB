@@ -38,6 +38,7 @@ func (httpApi HttpApi) registerHandlers(r *gin.Engine) {
 	r.POST(apiPrefix+"/database/:name/table", httpApi.createTableInDatabaseHandler)
 	r.POST(apiPrefix+"/database/:name/table/:tableName/get", httpApi.getFromDatabaseTableHandler)
 	r.POST(apiPrefix+"/database/:name/table/:tableName/insert", httpApi.insertToDatabaseTableHandler)
+	r.POST(apiPrefix+"/database/:name/table/:tableName/remove", httpApi.removeFromDatabaseTableHandler)
 }
 
 func (httpApi HttpApi) getDatabasesHandler(c *gin.Context) {
@@ -135,6 +136,23 @@ func (httpApi HttpApi) insertToDatabaseTableHandler(c *gin.Context) {
 		tableName := c.Param("tableName")
 
 		results, err := httpApi.api.InsertToDatabaseTable(name, tableName, *body)
+
+		if err == nil {
+			c.JSON(http.StatusOK, results)
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": fmt.Sprint(err)})
+		}
+	}
+}
+
+func (httpApi HttpApi) removeFromDatabaseTableHandler(c *gin.Context) {
+	body := httpApi.getBody(c)
+
+	if body != nil {
+		name := c.Param("name")
+		tableName := c.Param("tableName")
+
+		results, err := httpApi.api.RemoveFromDatabaseTable(name, tableName, *body)
 
 		if err == nil {
 			c.JSON(http.StatusOK, results)

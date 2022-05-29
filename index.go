@@ -53,6 +53,21 @@ func (index Index) add(field string, key string, element IndexElement) {
 	m[key] = append(e, element)
 }
 
+func (index Index) remove(field string, key string, element IndexElement) {
+	var elements []IndexElement
+
+	m := index.getMap(field)
+	e := getIndexElements(m, key)
+
+	for _, ie := range e {
+		if ie.value != element.value {
+			elements = append(elements, element)
+		}
+	}
+
+	m[key] = elements
+}
+
 func (index Index) equal(field string, key string) []IndexElement {
 	m := index.getMap(field)
 

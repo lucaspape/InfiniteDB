@@ -44,6 +44,8 @@ func (websocketApi WebsocketApi) handler(c *gin.Context, w http.ResponseWriter, 
 		return
 	}
 
+	websocketApi.send(conn, "", gin.H{"message": "HELO"})
+
 	for {
 		_, bytes, err := conn.ReadMessage()
 
@@ -137,6 +139,9 @@ func (websocketApi WebsocketApi) methodHandler(conn *websocket.Conn, clientIp st
 		case "insertToDatabaseTable":
 			closed, status = websocketApi.insertToDatabaseTableHandler(conn, requestId, r)
 			break
+		case "removeFromDatabaseTable":
+			closed, status = websocketApi.removeFromDatabaseTableHandler(conn, requestId, r)
+			break
 		default:
 			closed = websocketApi.send(conn, requestId, gin.H{"status": http.StatusInternalServerError, "message": "method not found"})
 			status = http.StatusInternalServerError
@@ -206,6 +211,16 @@ func (websocketApi WebsocketApi) insertToDatabaseTableHandler(conn *websocket.Co
 	object := r["object"]
 
 	results, err := websocketApi.api.InsertToDatabaseTable(name, tableName, object)
+
+	return websocketApi.sendResults(conn, requestId, results, err)
+}
+
+func (websocketApi WebsocketApi) removeFromDatabaseTableHandler(conn *websocket.Conn, requestId string, r map[string]interface{}) (bool, int) {
+	name := r["name"]
+	tableName := r["tableName"]
+	request := r["request"]
+
+	results, err := websocketApi.api.RemoveFromDatabaseTable(name, tableName, request)
 
 	return websocketApi.sendResults(conn, requestId, results, err)
 }

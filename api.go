@@ -213,3 +213,34 @@ func (api Api) InsertToDatabaseTable(name interface{}, tableName interface{}, ob
 
 	return m, nil
 }
+
+func (api Api) RemoveFromDatabaseTable(name interface{}, tableName interface{}, request interface{}) (map[string]interface{}, error) {
+	m := make(map[string]interface{})
+
+	if name == nil {
+		return m, errors.New("no name specified")
+	}
+
+	if tableName == nil {
+		return m, errors.New("no tableName specified")
+	}
+
+	if request == nil {
+		return m, errors.New("no request specified")
+	}
+
+	database := api.databases[name.(string)]
+
+	count, err := database.remove(tableName.(string), request.(map[string]interface{}))
+
+	if err != nil {
+		return m, err
+	}
+
+	m["name"] = name.(string)
+	m["tableName"] = tableName.(string)
+	m["request"] = request.(map[string]interface{})
+	m["removed"] = count
+
+	return m, nil
+}

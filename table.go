@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
+	"os"
 	"reflect"
 	"sort"
 	"strconv"
@@ -320,10 +321,30 @@ func (table Table) insert(object Object) error {
 	return nil
 }
 
+func (table Table) remove(object Object) error {
+	table.unIndexObject(object)
+
+	err := os.Remove(table.objectsPath + object.Id)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (table Table) indexObject(object Object) {
 	for fieldName, field := range table.Fields {
 		if field.Indexed {
 			table.index.add(fieldName, fmt.Sprintf("%v", object.M[fieldName]), *NewIndexElement(object.Id))
+		}
+	}
+}
+
+func (table Table) unIndexObject(object Object) {
+	for fieldName, field := range table.Fields {
+		if field.Indexed {
+			table.index.remove(fieldName, fmt.Sprintf("%v", object.M[fieldName]), *NewIndexElement(object.Id))
 		}
 	}
 }
