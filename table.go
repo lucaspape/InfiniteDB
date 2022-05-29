@@ -234,15 +234,32 @@ func (objects Objects) sortBoolean(fieldName string, direction string) Objects {
 	return objects
 }
 
-//TODO validate this
 func (objects Objects) skipAndLimit(skip *int64, limit *int64) Objects {
+	results := make([]Object, 0)
+
 	if skip != nil && limit != nil {
-		objects.objects = objects.objects[*skip:*limit]
+		for i, object := range objects.objects {
+			if int64(i) >= *skip && int64(i) < *limit {
+				results = append(results, object)
+			}
+		}
+
 	} else if skip == nil && limit != nil {
-		objects.objects = objects.objects[0:*limit]
+		for i, object := range objects.objects {
+			if int64(i) < *limit {
+				results = append(results, object)
+			}
+		}
+
 	} else if skip != nil && limit == nil {
-		objects.objects = objects.objects[*skip:(int64(len(objects.objects)) - *skip)]
+		for i, object := range objects.objects {
+			if int64(i) >= *skip {
+				results = append(results, object)
+			}
+		}
 	}
+
+	objects.objects = results
 
 	return objects
 }
