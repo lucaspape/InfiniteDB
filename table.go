@@ -257,6 +257,8 @@ func (objects Objects) skipAndLimit(skip *int64, limit *int64) Objects {
 				results = append(results, object)
 			}
 		}
+	} else if skip == nil && limit == nil {
+		results = objects.objects
 	}
 
 	objects.objects = results
