@@ -7,9 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"reflect"
-	"regexp"
 	"strconv"
-	"strings"
 )
 
 type Database struct {
@@ -38,9 +36,10 @@ type Where struct {
 }
 
 type Implement struct {
-	from  ImplementFrom
-	field string
-	as    *string
+	from       ImplementFrom
+	field      string
+	as         *string
+	forceArray *bool
 }
 
 type ImplementFrom struct {
@@ -215,13 +214,19 @@ func (database Database) get(tableName string, request map[string]interface{}) (
 
 	if r.where != nil {
 		table := database.Tables[tableName]
-		objects, err := runWhere(table, *r.where, nil)
+		objects, err := table.runWhere(*r.where, nil)
 
 		if r.sort != nil {
 			objects, err = objects.sort(table, r.sort.field, r.sort.direction, r.sort.levenshtein)
 		}
 
 		objects = objects.skipAndLimit(r.skip, r.limit)
+
+		if r.implement != nil {
+			for _, implement := range *r.implement {
+				objects, err = database.runImplement(implement, objects)
+			}
+		}
 
 		return &objects, err
 	} else {
@@ -254,57 +259,39 @@ func (database Database) remove(tableName string, request map[string]interface{}
 	return count, nil
 }
 
-func runWhere(table Table, where Where, previousObjects *Objects) (Objects, error) {
-	var objects Objects
-	var err error
+func (database Database) runImplement(implement Implement, objects Objects) (Objects, error) {
+	table := database.Tables[implement.from.table]
 
-	switch where.operator {
-	case equals:
-		objects, err = table.equal(where.field, where.value, previousObjects)
-		break
-	case not:
-		objects, err = table.not(where.field, where.value, previousObjects)
-		break
-	case match:
-		r, err := regexp.Compile(where.value)
+	for _, object := range objects.objects {
+		where := new(Where)
+		where.field = implement.from.field
+		where.value = fmt.Sprintf("%v", object.M[implement.field])
+		where.operator = equals
+
+		implementObjects, err := table.runWhere(*where, nil)
 
 		if err != nil {
 			return objects, err
 		}
 
-		objects, err = table.match(where.field, *r, previousObjects)
-		break
-	case smaller:
-		objects, err = table.smaller(where.field, where.value, previousObjects)
-		break
-	case larger:
-		objects, err = table.larger(where.field, where.value, previousObjects)
-		break
-	case between:
-		values := strings.Split(where.value, "-")
+		if len(implementObjects.objects) > 0 {
+			as := implement.from.table
 
-		objects, err = table.between(where.field, values[0], values[1], previousObjects)
-		break
-	}
-
-	if err != nil {
-		return objects, err
-	}
-
-	if where.where != nil {
-		switch *where.where.t {
-		case and:
-			return runWhere(table, *where.where, &objects)
-		case or:
-			next, err := runWhere(table, *where.where, previousObjects)
-
-			if err != nil {
-				return objects, err
+			if implement.as != nil {
+				as = *implement.as
 			}
 
-			//TODO remove duplicates
-			objects.objects = append(objects.objects, next.objects...)
-			break
+			if len(implementObjects.objects) > 1 || (implement.forceArray != nil && *implement.forceArray) {
+				maps := make([]map[string]interface{}, 0)
+
+				for _, o := range implementObjects.objects {
+					maps = append(maps, o.M)
+				}
+
+				object.M[as] = maps
+			} else {
+				object.M[as] = implementObjects.objects[0].M
+			}
 		}
 	}
 
@@ -464,6 +451,10 @@ func parseImplement(m map[string]interface{}) *Implement {
 		case "as":
 			as := value.(string)
 			implement.as = &as
+			break
+		case "forceArray":
+			forceArray := value.(bool)
+			implement.forceArray = &forceArray
 			break
 		}
 	}

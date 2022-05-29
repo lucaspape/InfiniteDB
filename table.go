@@ -10,6 +10,7 @@ import (
 	"regexp"
 	"sort"
 	"strconv"
+	"strings"
 )
 
 type Table struct {
@@ -304,6 +305,63 @@ func (table Table) initializeIndex() error {
 	}
 
 	return nil
+}
+
+func (table Table) runWhere(where Where, previousObjects *Objects) (Objects, error) {
+	var objects Objects
+	var err error
+
+	switch where.operator {
+	case equals:
+		objects, err = table.equal(where.field, where.value, previousObjects)
+		break
+	case not:
+		objects, err = table.not(where.field, where.value, previousObjects)
+		break
+	case match:
+		r, err := regexp.Compile(where.value)
+
+		if err != nil {
+			return objects, err
+		}
+
+		objects, err = table.match(where.field, *r, previousObjects)
+		break
+	case smaller:
+		objects, err = table.smaller(where.field, where.value, previousObjects)
+		break
+	case larger:
+		objects, err = table.larger(where.field, where.value, previousObjects)
+		break
+	case between:
+		values := strings.Split(where.value, "-")
+
+		objects, err = table.between(where.field, values[0], values[1], previousObjects)
+		break
+	}
+
+	if err != nil {
+		return objects, err
+	}
+
+	if where.where != nil {
+		switch *where.where.t {
+		case and:
+			return table.runWhere(*where.where, &objects)
+		case or:
+			next, err := table.runWhere(*where.where, previousObjects)
+
+			if err != nil {
+				return objects, err
+			}
+
+			//TODO remove duplicates
+			objects.objects = append(objects.objects, next.objects...)
+			break
+		}
+	}
+
+	return objects, nil
 }
 
 func (table Table) insert(object Object, overwrite bool) error {
