@@ -266,15 +266,15 @@ func (api Api) UpdateInDatabaseTable(name interface{}, tableName interface{}, ob
 
 	foundObject, err := table.findExisting(object.(map[string]interface{}))
 
-	for key, value := range object.(map[string]interface{}) {
-		foundObject.M[key] = value
-	}
-
 	if err != nil {
 		return m, err
 	}
 
-	err = table.insert(*NewObject(foundObject.Id, object.(map[string]interface{})), true)
+	for key, value := range object.(map[string]interface{}) {
+		foundObject.M[key] = value
+	}
+
+	err = table.insert(*foundObject, true)
 
 	if err != nil {
 		return m, err
