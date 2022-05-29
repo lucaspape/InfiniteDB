@@ -1,6 +1,7 @@
 package main
 
 import (
+	"regexp"
 	"strconv"
 )
 
@@ -81,6 +82,20 @@ func (index Index) not(field string, key string) []IndexElement {
 
 	forEachKey(m, func(mapKey string) {
 		if key != mapKey {
+			results = append(results, m[mapKey]...)
+		}
+	})
+
+	return results
+}
+
+func (index Index) match(field string, r regexp.Regexp) []IndexElement {
+	var results []IndexElement
+
+	m := index.getMap(field)
+
+	forEachKey(m, func(mapKey string) {
+		if r.MatchString(mapKey) {
 			results = append(results, m[mapKey]...)
 		}
 	})

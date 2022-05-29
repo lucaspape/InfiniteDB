@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"reflect"
+	"regexp"
 	"sort"
 	"strconv"
 )
@@ -47,6 +48,20 @@ func (objects Objects) not(fieldName string, key string) Objects {
 
 	for _, object := range objects.objects {
 		if object.M[fieldName].(string) != key {
+			results = append(results, object)
+		}
+	}
+
+	objects.objects = results
+
+	return objects
+}
+
+func (objects Objects) match(fieldName string, r regexp.Regexp) Objects {
+	var results []Object
+
+	for _, object := range objects.objects {
+		if r.MatchString(object.M[fieldName].(string)) {
 			results = append(results, object)
 		}
 	}
@@ -384,6 +399,14 @@ func (table Table) not(fieldName string, key string, previousObjects *Objects) (
 		return table.indexElementsToObjects(table.index.not(fieldName, key))
 	} else {
 		return previousObjects.not(fieldName, key), nil
+	}
+}
+
+func (table Table) match(fieldName string, r regexp.Regexp, previousObjects *Objects) (Objects, error) {
+	if previousObjects == nil {
+		return table.indexElementsToObjects(table.index.match(fieldName, r))
+	} else {
+		return previousObjects.match(fieldName, r), nil
 	}
 }
 

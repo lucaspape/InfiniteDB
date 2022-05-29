@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 )
@@ -56,6 +57,7 @@ type Sort struct {
 const (
 	equals  string = "="
 	not     string = "!="
+	match   string = "match"
 	larger  string = ">"
 	smaller string = "<"
 	between string = "><"
@@ -263,6 +265,15 @@ func runWhere(table Table, where Where, previousObjects *Objects) (Objects, erro
 	case not:
 		objects, err = table.not(where.field, where.value, previousObjects)
 		break
+	case match:
+		r, err := regexp.Compile(where.value)
+
+		if err != nil {
+			return objects, err
+		}
+
+		objects, err = table.match(where.field, *r, previousObjects)
+		break
 	case smaller:
 		objects, err = table.smaller(where.field, where.value, previousObjects)
 		break
@@ -368,6 +379,9 @@ func parseWhere(t *string, m map[string]interface{}) (*Where, error) {
 				break
 			case not:
 				operator = not
+				break
+			case match:
+				operator = match
 				break
 			case larger:
 				operator = larger
