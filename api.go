@@ -92,7 +92,7 @@ func (api Api) GetDatabaseTables(name interface{}) (map[string]interface{}, erro
 		return m, errors.New("no name specified")
 	}
 
-	var tableNames []string
+	tableNames := make([]string, 0)
 
 	database := api.databases[name.(string)]
 
@@ -165,7 +165,7 @@ func (api Api) GetFromDatabaseTable(name interface{}, tableName interface{}, req
 		return m, err
 	}
 
-	var results []map[string]interface{}
+	results := make([]map[string]interface{}, 0)
 
 	for _, object := range objects.objects {
 		results = append(results, object.M)
