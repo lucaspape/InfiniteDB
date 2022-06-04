@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/lucaspape/idblib"
 	"io/ioutil"
 	"net/http"
 )
@@ -11,10 +12,10 @@ import (
 const apiPrefix = ""
 
 type HttpApi struct {
-	api *Api
+	api *idblib.Api
 }
 
-func NewHttpApi(api *Api) *HttpApi {
+func NewHttpApi(api *idblib.Api) *HttpApi {
 	httpApi := new(HttpApi)
 
 	httpApi.api = api

@@ -3,13 +3,14 @@ package main
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
+	"github.com/lucaspape/idblib"
 	"io/ioutil"
 )
 
 const databasePath = "./databases/"
 
 func main() {
-	api := NewApi(databasePath)
+	api := idblib.NewApi(databasePath)
 	err := loadDatabases(api)
 
 	if err != nil {
@@ -33,7 +34,7 @@ func main() {
 	}
 }
 
-func loadDatabases(api *Api) error {
+func loadDatabases(api *idblib.Api) error {
 	files, err := ioutil.ReadDir(databasePath)
 
 	if err != nil {
@@ -41,8 +42,8 @@ func loadDatabases(api *Api) error {
 	}
 
 	for _, file := range files {
-		err = api.loadDatabase(file.Name())
-		
+		err = api.LoadDatabase(file.Name())
+
 		if err != nil {
 			return err
 		}

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
+	"github.com/lucaspape/idblib"
 	"net/http"
 	"time"
 )
@@ -15,10 +16,10 @@ var wsUpgrader = websocket.Upgrader{
 }
 
 type WebsocketApi struct {
-	api *Api
+	api *idblib.Api
 }
 
-func NewWebsocketApi(api *Api) *WebsocketApi {
+func NewWebsocketApi(api *idblib.Api) *WebsocketApi {
 	websocketApi := new(WebsocketApi)
 
 	websocketApi.api = api
