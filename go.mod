@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/gin-gonic/gin v1.8.0
 	github.com/gorilla/websocket v1.5.0
-	github.com/lucaspape/idblib v0.0.0-20220604192230-5bd647fea0fc
+	github.com/lucaspape/idblib v0.0.0-20220624071424-65a2bd8fd5f6
 )
 
 require (

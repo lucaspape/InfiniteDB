@@ -40,6 +40,8 @@ github.com/lucaspape/idblib v0.0.0-20220604191844-f7e81bf743d2 h1:BOcf6v+cYk4F9f
 github.com/lucaspape/idblib v0.0.0-20220604191844-f7e81bf743d2/go.mod h1:cV1dXggL+DzfqXrD2PyBGmKZn4aTYnHPsj9wHvzxvf8=
 github.com/lucaspape/idblib v0.0.0-20220604192230-5bd647fea0fc h1:MNyIKJY6K9lGHvadY1VrAXcUYFe6ZaqndlLZXPQQvd0=
 github.com/lucaspape/idblib v0.0.0-20220604192230-5bd647fea0fc/go.mod h1:cV1dXggL+DzfqXrD2PyBGmKZn4aTYnHPsj9wHvzxvf8=
+github.com/lucaspape/idblib v0.0.0-20220624071424-65a2bd8fd5f6 h1:ao7BuXrZyDu5LX5qkxF60sSWNJUx2SLQkr4A8VEId1I=
+github.com/lucaspape/idblib v0.0.0-20220624071424-65a2bd8fd5f6/go.mod h1:cV1dXggL+DzfqXrD2PyBGmKZn4aTYnHPsj9wHvzxvf8=
 github.com/mattn/go-isatty v0.0.14 h1:yVuAays6BHfxijgZPzw+3Zlu5yQgKGP2/hcQbHb7S9Y=
 github.com/mattn/go-isatty v0.0.14/go.mod h1:7GGIvUiUoEMVVmxf/4nioHXj79iQHKdU27kJ6hsGG94=
 github.com/modern-go/concurrent v0.0.0-20180228061459-e0a39a4cb421/go.mod h1:6dJC0mAP4ikYIbvyc7fijjWJddQyLn8Ig3JB5CqoB9Q=
